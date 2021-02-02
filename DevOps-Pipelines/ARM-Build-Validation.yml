@@ -1,0 +1,54 @@
+trigger:
+  branches:
+    include:
+      - main
+      - master
+  paths:
+    exclude:
+      - README.md
+
+pool:
+  vmImage: "windows-latest"
+
+stages:
+  - stage: Test
+    jobs:
+      - job: TestJob
+        steps:
+          - task: PowerShell@2
+            displayName: Install InvokeBuild module on the build agent
+            inputs:
+              targetType: "inline"
+              pwsh: true
+              script: |
+                if (-not (Get-Module -Name InvokeBuild -ListAvailable)) {
+                  Install-Module InvokeBuild -Force
+                }
+                Import-Module InvokeBuild
+
+          - task: PowerShell@2
+            displayName: Start checking ARM files for ARM-TTK
+            inputs:
+              targetType: "inline"
+              pwsh: true
+              failOnStderr: false
+              script: Invoke-Build -Task TestARMTTK -ModuleName $(module.Name)
+              workingDirectory: $(System.DefaultWorkingDirectory)
+
+          - task: PowerShell@2
+            displayName: Start checking ARM files for AzSKARMTemplateSecurity
+            inputs:
+              targetType: "inline"
+              pwsh: true
+              failOnStderr: false
+              script: Invoke-Build -Task TestARMAZSK -ModuleName $(module.Name)
+              workingDirectory: $(System.DefaultWorkingDirectory)
+  
+          - task: PublishTestResults@2
+            displayName: Publish test results
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: "NUnit"
+              mergeTestResults: true
+              testResultsFiles: '$(System.DefaultWorkingDirectory)\Results\TEST-*.xml'
+              failTaskOnFailedTests: true

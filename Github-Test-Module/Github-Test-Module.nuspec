@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>Github-Test-Module</id>
+    <version>0.0.1</version>
+    <authors>Eelco Labordus</authors>
+    <description>This is a test module for Github</description>
+    <copyright>(c) ....... All rights reserved.</copyright>
+    <licenseUrl>https://github.com/EelcoLabordus/TestModule</licenseUrl>
+    <projectUrl>https://github.com/EelcoLabordus/TestModule</projectUrl>
+  </metadata>
+</package>
