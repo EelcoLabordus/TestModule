@@ -8,7 +8,7 @@ on:
     paths-ignore:
       - README.md
 env:
-  moduleName: "TestModule"
+  moduleName: "Github-Test-Module"
 jobs:
   Test_Stage_TestJob:
     runs-on: windows-latest
