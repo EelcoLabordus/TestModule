@@ -8,7 +8,7 @@ on:
     paths-ignore:
       - README.md
 env:
-  module.Name: "TestModule"
+  moduleName: "TestModule"
 jobs:
   Test_Stage_TestJob:
     runs-on: windows-latest
@@ -22,16 +22,16 @@ jobs:
           Import-Module InvokeBuild
         shell: powershell
       - name: Analyze code with PSScriptAnalyzer
-        run: Invoke-Build -Task Analyze -ModuleName ${{ env.module.Name }}
+        run: Invoke-Build -Task Analyze -ModuleName ${{ env.moduleName }}
         shell: powershell
       - name: Test code with Pester tests
-        run: Invoke-Build -Task Test -ModuleName ${{ env.module.Name }}
+        run: Invoke-Build -Task Test -ModuleName ${{ env.moduleName }}
         shell: powershell
       - name: Start checking ARM files for ARM-TTK
-        run: Invoke-Build -Task TestARMTTK -ModuleName ${{ env.module.Name }}
+        run: Invoke-Build -Task TestARMTTK -ModuleName ${{ env.moduleName }}
         shell: powershell
       - name: Start checking ARM files for AzSKARMTemplateSecurity
-        run: Invoke-Build -Task TestARMAZSK -ModuleName ${{ env.module.Name }}
+        run: Invoke-Build -Task TestARMAZSK -ModuleName ${{ env.moduleName }}
         shell: powershell
       - # "Error: the step 'PublishTestResults@2' does not have a conversion path yet"
         name: Publish test results
@@ -47,7 +47,7 @@ jobs:
           #  failtaskonfailedtests: true
         if: (${{ job.status }} != 'cancelled')
       - name: Verify code coverage
-        run: Invoke-Build -Task CodeCoverage -ModuleName ${{ env.module.Name }}
+        run: Invoke-Build -Task CodeCoverage -ModuleName ${{ env.moduleName }}
         shell: powershell
       - # "Error: the step 'PublishCodeCoverageResults@1' does not have a conversion path yet"
         name: Publish code coverage results
@@ -59,7 +59,7 @@ jobs:
           #inputs:
           #  codecoveragetool: JaCoCo
           #  summaryfilelocation: ${{ github.workspace }}/**/CodeCoverageResults*.xml
-          #  pathtosources: ${{ github.workspace }}/${{ env.module.Name }}/
+          #  pathtosources: ${{ github.workspace }}/${{ env.moduleName }}/
           #  failifcoverageempty: true
         if: (${{ job.status }} != 'cancelled')
   Build_Stage_BuildJob:
@@ -75,7 +75,7 @@ jobs:
           Import-Module InvokeBuild
         shell: powershell
       - name: Build PowerShell module
-        run: Invoke-Build -Task Build -Configuration Release -Sourcelocation ${{ env.module.SourceLocation }} -ModuleName ${{ env.module.Name }} -ADOPat ${{ env.System.AccessToken }} -acceptableCodeCoveragePercent ${{ env.module.acceptableCodeCoveragePercent }} -MajorVersionNumber ${{ env.module.MajorVersionNumber }}
+        run: Invoke-Build -Task Build -Configuration Release -Sourcelocation ${{ env.module.SourceLocation }} -ModuleName ${{ env.moduleName }} -ADOPat ${{ env.System.AccessToken }} -acceptableCodeCoveragePercent ${{ env.module.acceptableCodeCoveragePercent }} -MajorVersionNumber ${{ env.module.MajorVersionNumber }}
         shell: powershell
       - name: Create a NuGet package
         run: nuget pack
@@ -83,9 +83,9 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           path: ${{ github.workspace }}
-          name: ${{ env.module.Name }}
+          name: ${{ env.moduleName }}
       - name: Building Markdown Help Files
-        run: Invoke-Build -Task BuildingHelpFiles -ModuleName ${{ env.module.Name }}
+        run: Invoke-Build -Task BuildingHelpFiles -ModuleName ${{ env.moduleName }}
         shell: powershell
       - name: Publish Markdown files
         uses: actions/upload-artifact@v2
@@ -100,7 +100,7 @@ jobs:
       - name: Download Build Artifacts
         uses: actions/download-artifact@v2
         with:
-          name: ${{ env.module.Name }}
+          name: ${{ env.moduleName }}
           path: ${{ env.Pipeline.Workspace }}
       - name: Publish module to NuGet feed
         run: nuget push
