@@ -11,6 +11,7 @@ env:
   module.Name: "TestModule"
 jobs:
   Test_Stage_TestJob:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
       - name: Install InvokeBuild module on the build agent
@@ -63,6 +64,7 @@ jobs:
         if: (${{ job.status }} != 'cancelled')
   Build_Stage_BuildJob:
     if: success()
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
       - name: Install InvokeBuild module on the build agent
@@ -92,6 +94,7 @@ jobs:
           name: help
   Publish_Stage_PublishJob:
     if: success()
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
       - name: Download Build Artifacts
