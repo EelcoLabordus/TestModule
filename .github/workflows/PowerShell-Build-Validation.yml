@@ -1,35 +1,103 @@
-# This is a basic workflow to help you get started with Actions
-
-name: CI
-
-# Controls when the action will run. 
+#Error (line 35): the step 'PublishTestResults@2' does not have a conversion path yet
+#Error (line 51): the step 'PublishCodeCoverageResults@1' does not have a conversion path yet
 on:
-  # Triggers the workflow on push or pull request events but only for the master branch
   push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+    branches:
+      - master
+      - main
+    paths-ignore:
+      - README.md
+env:
+  module.Name: "TestModule"
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
-    runs-on: windows-latest
-
+  Test_Stage_TestJob:
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-
       - name: Install InvokeBuild module on the build agent
         run: |
-              if (-not (Get-Module -Name InvokeBuild -ListAvailable)) {
-                Install-Module InvokeBuild -Force
-              }
-              Import-Module InvokeBuild
-
+          if (-not (Get-Module -Name InvokeBuild -ListAvailable)) {
+            Install-Module InvokeBuild -Force
+          }
+          Import-Module InvokeBuild
+        shell: powershell
       - name: Analyze code with PSScriptAnalyzer
-        run: Invoke-Build -Task Analyze -ModuleName $(module.Name)
+        run: Invoke-Build -Task Analyze -ModuleName ${{ env.module.Name }}
+        shell: powershell
+      - name: Test code with Pester tests
+        run: Invoke-Build -Task Test -ModuleName ${{ env.module.Name }}
+        shell: powershell
+      - name: Start checking ARM files for ARM-TTK
+        run: Invoke-Build -Task TestARMTTK -ModuleName ${{ env.module.Name }}
+        shell: powershell
+      - name: Start checking ARM files for AzSKARMTemplateSecurity
+        run: Invoke-Build -Task TestARMAZSK -ModuleName ${{ env.module.Name }}
+        shell: powershell
+      - # "Error: the step 'PublishTestResults@2' does not have a conversion path yet"
+        name: Publish test results
+        run: |
+          echo "Error: the step 'PublishTestResults@2' does not have a conversion path yet"
+          #task: PublishTestResults@2
+          #displayName: Publish test results
+          #condition: succeededOrFailed()
+          #inputs:
+          #  testresultsformat: NUnit
+          #  mergetestresults: true
+          #  testresultsfiles: ${{ github.workspace }}\Results\TEST-*.xml
+          #  failtaskonfailedtests: true
+        if: (${{ job.status }} != 'cancelled')
+      - name: Verify code coverage
+        run: Invoke-Build -Task CodeCoverage -ModuleName ${{ env.module.Name }}
+        shell: powershell
+      - # "Error: the step 'PublishCodeCoverageResults@1' does not have a conversion path yet"
+        name: Publish code coverage results
+        run: |
+          echo "Error: the step 'PublishCodeCoverageResults@1' does not have a conversion path yet"
+          #task: PublishCodeCoverageResults@1
+          #displayName: Publish code coverage results
+          #condition: succeededOrFailed()
+          #inputs:
+          #  codecoveragetool: JaCoCo
+          #  summaryfilelocation: ${{ github.workspace }}/**/CodeCoverageResults*.xml
+          #  pathtosources: ${{ github.workspace }}/${{ env.module.Name }}/
+          #  failifcoverageempty: true
+        if: (${{ job.status }} != 'cancelled')
+  Build_Stage_BuildJob:
+    if: success()
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install InvokeBuild module on the build agent
+        run: |
+          if (-not (Get-Module -Name InvokeBuild -ListAvailable)) {
+            Install-Module InvokeBuild -Force
+          }
+          Import-Module InvokeBuild
+        shell: powershell
+      - name: Build PowerShell module
+        run: Invoke-Build -Task Build -Configuration Release -Sourcelocation ${{ env.module.SourceLocation }} -ModuleName ${{ env.module.Name }} -ADOPat ${{ env.System.AccessToken }} -acceptableCodeCoveragePercent ${{ env.module.acceptableCodeCoveragePercent }} -MajorVersionNumber ${{ env.module.MajorVersionNumber }}
+        shell: powershell
+      - name: Create a NuGet package
+        run: nuget pack
+      - name: Publish build artifact
+        uses: actions/upload-artifact@v2
+        with:
+          path: ${{ github.workspace }}
+          name: ${{ env.module.Name }}
+      - name: Building Markdown Help Files
+        run: Invoke-Build -Task BuildingHelpFiles -ModuleName ${{ env.module.Name }}
+        shell: powershell
+      - name: Publish Markdown files
+        uses: actions/upload-artifact@v2
+        with:
+          path: D:\a\1\s\build\Help
+          name: help
+  Publish_Stage_PublishJob:
+    if: success()
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.module.Name }}
+          path: ${{ env.Pipeline.Workspace }}
+      - name: Publish module to NuGet feed
+        run: nuget push
